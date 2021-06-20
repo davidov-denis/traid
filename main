@@ -1,0 +1,95 @@
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, \
+    QLineEdit, QTableWidget
+from PyQt5 import QtCore
+import sqlite3
+
+
+STEAM_URL_TEMPLATE = "https://steamcommunity.com/market/listings/"
+STEAM_LOWER_PRICE_URL_TEMPLATE = "https://steamcommunity.com/market/priceoverview/?appid="
+def add_to_db(url, price, quality):
+    game, product = url[43:].split("/")
+    conn = sqlite3.connect("db.sqlite")
+    cur = conn.cursor()
+    cur.execute(f"INSERT INTO products(game, product, quality, price) VALUES('{game}', '{product}', {quality}, {price})")
+    cur.close()
+    conn.commit()
+    conn.close()
+
+
+class Main(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setGeometry(800, 800, 800, 800)
+        self.setWindowTitle('Трейдер')
+
+        self.product_url = QLineEdit(self)
+        self.product_url.setPlaceholderText("Ссылка на товар")
+        self.product_url.resize(200, 40)
+        self.product_url.move(10, 5)
+
+        self.product_price = QLineEdit(self)
+        self.product_price.setPlaceholderText("Цена закупки")
+        self.product_price.resize(200, 40)
+        self.product_price.move(220, 5)
+
+        self.product_quality = QLineEdit(self)
+        self.product_quality.setPlaceholderText("Количество")
+        self.product_quality.resize(200, 40)
+        self.product_quality.move(430, 5)
+
+        self.submit_btn = QPushButton("Добавить", self)
+        self.submit_btn.resize(150, 40)
+        self.submit_btn.move(640, 5)
+
+        self.status_code = QLabel(self)
+        self.status_code.setAlignment(QtCore.Qt.AlignCenter)
+        self.status_code.resize(300, 40)
+        self.status_code.move(225, 50)
+
+
+        self.products_list = QTableWidget(self)
+        self.products_list.resize(790, 700)
+        self.products_list.move(5, 95)
+
+
+
+        self.submit_btn.clicked.connect(self.change)
+
+    def change(self):
+        try:
+            self.status_code.setText("")
+            price = float(self.product_price.text())
+            quality = int(self.product_quality.text())
+            url = self.product_url.text()
+            if price > 0 and quality > 0 and len(url) > 46 and url[:43] == STEAM_URL_TEMPLATE:
+                add_to_db(url, price, quality)
+            else:
+                self.status_code.setText("Ошибочка сука")
+        except ValueError:
+            self.status_code.setText("Ошибочка сука")
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    main = Main()
+    main.show()
+    sys.exit(app.exec())
+    
+    
+    
+    
+    
+   # https://steamcommunity.com/market/priceoverview/?appid=570&market_hash_name=Treasure%20of%20Vermilion%20Renewal
+
+
+app_id = 730
+product_name = input()
+import requests
+data = requests.get(f"https://steamcommunity.com/market/priceoverview/?appid={app_id}&market_hash_name={product_name}")
+data = dict(data.json())
+if data.get("success") == "true":
+    print(data.get("lowest_price"))
